@@ -1,8 +1,10 @@
 package ui
 
 import (
+	"log/slog"
 	"strings"
 
+	"git.pablu.de/pablu/pybug/internal/bridge"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -17,6 +19,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.stdoutOutput.SetContent(strings.Join(m.messages, ""))
 		m.stdoutOutput.GotoBottom()
 		return m, ListenBridge(m.listenBridge)
+	case ExecutionStoppedMsg:
+		m.currExecutionPoint = bridge.ExecutionPoint(msg)
+		return m, ListenBridgeExecutionsStopped(m.listenBridgeExecutionsStopped)
 	}
 
 	return m, nil
@@ -61,8 +66,17 @@ func (m Model) HandleKeyMsg(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 				lineNumber,
 			}
 		}
+	case "s":
+		m.bridge.Step()
 	case "c":
 		m.bridge.Continue()
+	case "r":
+		m.messages = make([]string, 0)
+		m.stdoutOutput.SetContent("")
+		err := m.bridge.Start()
+		if err != nil {
+			slog.Error("could not start brige", "error", err)
+		}
 	}
 
 	return m, nil

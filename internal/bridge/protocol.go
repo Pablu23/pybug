@@ -12,6 +12,7 @@ const (
 	ContinueCommand CommandType = "continue"
 	BreakCommand    CommandType = "break"
 	LocalsCommand   CommandType = "locals"
+	StepCommand     CommandType = "step"
 )
 
 func makeCommand(cmd CommandType, values map[string]any) (requestId string, request string) {

@@ -30,15 +30,20 @@ func (m Model) View() string {
 	for i, line := range lines {
 		breakpoint := " "
 		cursor := " "
+		executor := " "
 
 		if slices.Contains(breakpoints, i+1) {
 			breakpoint = "O"
 		}
 
+		if i+1 == m.currExecutionPoint.Line {
+			executor = "!"
+		}
+
 		if i == m.cursor {
 			cursor = ">"
 		}
-		fmt.Fprintf(&out, "%-4d%s%s %s\n", i+1, breakpoint, cursor, line)
+		fmt.Fprintf(&out, "%-4d%s%s%s %s\n", i+1, breakpoint, executor, cursor, line)
 	}
 
 	m.codeViewer.SetContent(out.String())

@@ -16,8 +16,11 @@ type Model struct {
 	width  int
 	height int
 
-	bridge       *bridge.Bridge
-	listenBridge chan string
+	bridge                        *bridge.Bridge
+	listenBridge                  chan string
+	listenBridgeExecutionsStopped chan bridge.ExecutionPoint
+
+	currExecutionPoint bridge.ExecutionPoint
 
 	messages     []string
 	stdoutOutput viewport.Model
@@ -29,6 +32,7 @@ type Model struct {
 
 func NewModel(b *bridge.Bridge, file string, text string) Model {
 	c := b.Subscribe()
+	c2 := b.SubscribeStopped()
 
 	stdoutOutput := viewport.New(0, 0)
 	codeViewer := viewport.New(0, 0)
@@ -38,9 +42,14 @@ func NewModel(b *bridge.Bridge, file string, text string) Model {
 		text:        text,
 		textLines:   len(strings.Split(text, "\n")),
 
-		bridge:       b,
-		listenBridge: c,
+		bridge:                        b,
+		listenBridge:                  c,
+		listenBridgeExecutionsStopped: c2,
 
+		currExecutionPoint: bridge.ExecutionPoint{
+			File: file,
+			Line: 0,
+		},
 		breakpoints: make(map[string][]int),
 		messages:    make([]string, 0),
 
@@ -57,8 +66,19 @@ func ListenBridge(ch <-chan string) tea.Cmd {
 	}
 }
 
+func ListenBridgeExecutionsStopped(ch <-chan bridge.ExecutionPoint) tea.Cmd {
+	return func() tea.Msg {
+		msg := <-ch
+		return ExecutionStoppedMsg(msg)
+	}
+}
+
+type ExecutionStoppedMsg bridge.ExecutionPoint
 type StdoutMsg string
 
 func (m Model) Init() tea.Cmd {
-	return ListenBridge(m.listenBridge)
+	return tea.Batch(
+		ListenBridge(m.listenBridge),
+		ListenBridgeExecutionsStopped(m.listenBridgeExecutionsStopped),
+	)
 }
