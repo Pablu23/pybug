@@ -1,17 +1,14 @@
 package ui
 
 import (
-	"strings"
-
 	"git.pablu.de/pablu/pybug/internal/bridge"
+	"git.pablu.de/pablu/pybug/ui/codeviewer"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 type Model struct {
 	currentFile string
-	text        string
-	textLines   int
 
 	width  int
 	height int
@@ -25,9 +22,8 @@ type Model struct {
 
 	messages     []string
 	stdoutOutput viewport.Model
-	codeViewer   viewport.Model
+	codeViewer   codeviewer.CodeViewer
 	localsViewer viewport.Model
-	cursor       int
 
 	breakpoints map[string][]int
 }
@@ -37,13 +33,11 @@ func NewModel(b *bridge.Bridge, file string, text string) Model {
 	c2 := b.SubscribeStopped()
 
 	stdoutOutput := viewport.New(0, 0)
-	codeViewer := viewport.New(0, 0)
+	codeViewer := codeviewer.NewCodeViewer(text)
 	localsViewer := viewport.New(0, 0)
 
 	return Model{
 		currentFile: file,
-		text:        text,
-		textLines:   len(strings.Split(text, "\n")),
 
 		bridge:                        b,
 		listenBridge:                  c,
@@ -57,7 +51,6 @@ func NewModel(b *bridge.Bridge, file string, text string) Model {
 		breakpoints: make(map[string][]int),
 		messages:    make([]string, 0),
 
-		cursor:       0,
 		codeViewer:   codeViewer,
 		stdoutOutput: stdoutOutput,
 		localsViewer: localsViewer,

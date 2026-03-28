@@ -5,10 +5,14 @@ import (
 	"strings"
 
 	"git.pablu.de/pablu/pybug/internal/bridge"
+	"git.pablu.de/pablu/pybug/ui/codeviewer"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	updatedCv, cmd := m.codeViewer.Update(msg)
+	m.codeViewer = updatedCv.(codeviewer.CodeViewer)
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		return m.HandleKeyMsg(msg)
@@ -27,7 +31,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.localsViewer.SetContent(strings.Join(flattenDict(m.currLocals, 0), "\n"))
 	}
 
-	return m, nil
+	return m, cmd
 }
 
 func (m Model) GetLocals() tea.Cmd {
@@ -50,7 +54,7 @@ func (m Model) UpdateWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	outputHeight := msg.Height - editorHeight - 4
 
 	m.codeViewer.Width = msg.Width
-	m.codeViewer.Height = editorHeight
+	m.codeViewer.Height = editorHeight - 2
 
 	m.stdoutOutput.Width = msg.Width / 2
 	m.stdoutOutput.Height = outputHeight
@@ -67,23 +71,17 @@ func (m Model) HandleKeyMsg(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch key.String() {
 	case "q", "ctrl+c":
 		return m, tea.Quit
-	case "k":
-		m.codeViewer.ScrollUp(1)
-		m.cursor = max(0, m.cursor-1)
-	case "j":
-		m.codeViewer.ScrollDown(1)
-		m.cursor = min(m.textLines-1, m.cursor+1)
-	case "b":
-		lineNumber := m.cursor + 1
-
-		m.bridge.Breakpoint(m.currentFile, lineNumber)
-		if file, ok := m.breakpoints[m.currentFile]; ok {
-			m.breakpoints[m.currentFile] = append(file, lineNumber)
-		} else {
-			m.breakpoints[m.currentFile] = []int{
-				lineNumber,
-			}
-		}
+	// case "b":
+	// 	lineNumber := m.cursor + 1
+	//
+	// 	m.bridge.Breakpoint(m.currentFile, lineNumber)
+	// 	if file, ok := m.breakpoints[m.currentFile]; ok {
+	// 		m.breakpoints[m.currentFile] = append(file, lineNumber)
+	// 	} else {
+	// 		m.breakpoints[m.currentFile] = []int{
+	// 			lineNumber,
+	// 		}
+	// 	}
 	case "s":
 		m.bridge.Step()
 	case "c":
