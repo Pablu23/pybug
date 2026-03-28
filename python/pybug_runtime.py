@@ -46,7 +46,11 @@ class PyBugBridgeDebugger(bdb.Bdb):
                         {
                             "request_id": cmd["request_id"],
                             "event": "locals",
-                            "vars": {k: repr(v) for k, v in frame.f_locals.items()},
+                            "vars": {
+                                k: repr(v)
+                                for k, v in frame.f_locals.items()
+                                if k not in frame.f_globals.keys()
+                            },
                         }
                     )
                 case "eval":
