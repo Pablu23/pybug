@@ -17,7 +17,7 @@ class PyBugBridgeDebugger(bdb.Bdb):
         return json.loads(sys.stdin.readline())
 
     def user_line(self, frame: FrameType):
-        # print("TRACE:", frame.f_code.co_filename, frame.f_lineno)
+        print("TRACE:", frame.f_code.co_filename, frame.f_lineno)
         self.send(
             {
                 "event": "stopped",
@@ -30,7 +30,9 @@ class PyBugBridgeDebugger(bdb.Bdb):
 
     def interaction_loop(self, frame: FrameType):
         while True:
+            print("DEBUG: waiting for command", file=sys.stderr, flush=True)
             cmd = self.recv()
+            print(f"DEBUG: received command {cmd}", file=sys.stderr, flush=True)
 
             match cmd["cmd"]:
                 case "continue":
@@ -107,7 +109,7 @@ def main():
     }
 
     dbg.set_step()
-    dbg.run(code, globals_dict, {})
+    dbg.run(code, globals_dict, globals_dict)
 
 
 if __name__ == "__main__":

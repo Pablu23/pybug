@@ -64,7 +64,6 @@ def generate_company(name: str, num_employees: int) -> Company:
 
 def main():
     my_company = generate_company("TechCorp", 5)
-
     print("All employees:")
     for emp in my_company.employees:
         print(emp)
