@@ -21,10 +21,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, ListenBridge(m.listenBridge)
 	case ExecutionStoppedMsg:
 		m.currExecutionPoint = bridge.ExecutionPoint(msg)
-		return m, ListenBridgeExecutionsStopped(m.listenBridgeExecutionsStopped)
+		return m, tea.Batch(ListenBridgeExecutionsStopped(m.listenBridgeExecutionsStopped), m.GetLocals())
+	case LocalsMsg:
+		m.currLocals = map[string]any(msg)
+		m.localsViewer.SetContent(strings.Join(flattenDict(m.currLocals, 0), "\n"))
 	}
 
 	return m, nil
+}
+
+func (m Model) GetLocals() tea.Cmd {
+	return func() tea.Msg {
+		vars, err := m.bridge.Locals()
+		if err != nil {
+			slog.Error("couldnt get vars", "error", err)
+			return nil
+		}
+
+		return LocalsMsg(vars)
+	}
 }
 
 func (m Model) UpdateWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
@@ -37,8 +52,11 @@ func (m Model) UpdateWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	m.codeViewer.Width = msg.Width
 	m.codeViewer.Height = editorHeight
 
-	m.stdoutOutput.Width = msg.Width
+	m.stdoutOutput.Width = msg.Width / 2
 	m.stdoutOutput.Height = outputHeight
+
+	m.localsViewer.Width = msg.Width / 2
+	m.localsViewer.Height = outputHeight
 
 	m.stdoutOutput.SetContent(strings.Join(m.messages, ""))
 
@@ -53,7 +71,7 @@ func (m Model) HandleKeyMsg(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.codeViewer.ScrollUp(1)
 		m.cursor = max(0, m.cursor-1)
 	case "j":
-		m.codeViewer.ScrollUp(1)
+		m.codeViewer.ScrollDown(1)
 		m.cursor = min(m.textLines-1, m.cursor+1)
 	case "b":
 		lineNumber := m.cursor + 1

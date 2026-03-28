@@ -20,11 +20,13 @@ type Model struct {
 	listenBridge                  chan string
 	listenBridgeExecutionsStopped chan bridge.ExecutionPoint
 
+	currLocals         map[string]any
 	currExecutionPoint bridge.ExecutionPoint
 
 	messages     []string
 	stdoutOutput viewport.Model
 	codeViewer   viewport.Model
+	localsViewer viewport.Model
 	cursor       int
 
 	breakpoints map[string][]int
@@ -36,6 +38,7 @@ func NewModel(b *bridge.Bridge, file string, text string) Model {
 
 	stdoutOutput := viewport.New(0, 0)
 	codeViewer := viewport.New(0, 0)
+	localsViewer := viewport.New(0, 0)
 
 	return Model{
 		currentFile: file,
@@ -46,6 +49,7 @@ func NewModel(b *bridge.Bridge, file string, text string) Model {
 		listenBridge:                  c,
 		listenBridgeExecutionsStopped: c2,
 
+		currLocals: make(map[string]any),
 		currExecutionPoint: bridge.ExecutionPoint{
 			File: file,
 			Line: 0,
@@ -56,6 +60,7 @@ func NewModel(b *bridge.Bridge, file string, text string) Model {
 		cursor:       0,
 		codeViewer:   codeViewer,
 		stdoutOutput: stdoutOutput,
+		localsViewer: localsViewer,
 	}
 }
 
@@ -73,6 +78,7 @@ func ListenBridgeExecutionsStopped(ch <-chan bridge.ExecutionPoint) tea.Cmd {
 	}
 }
 
+type LocalsMsg map[string]any
 type ExecutionStoppedMsg bridge.ExecutionPoint
 type StdoutMsg string
 
