@@ -10,17 +10,19 @@ import (
 
 type Model struct {
 	currentFile string
-	cursor      int
 	text        string
-	width       int
-	height      int
-	lineCount   int
-	bridge      *bridge.Bridge
+	textLines   int
 
+	width  int
+	height int
+
+	bridge       *bridge.Bridge
 	listenBridge chan string
 
-	messages []string
-	viewport viewport.Model
+	messages     []string
+	stdoutOutput viewport.Model
+	codeViewer   viewport.Model
+	cursor       int
 
 	breakpoints map[string][]int
 }
@@ -28,18 +30,23 @@ type Model struct {
 func NewModel(b *bridge.Bridge, file string, text string) Model {
 	c := b.Subscribe()
 
-	vp := viewport.New(0, 0)
+	stdoutOutput := viewport.New(0, 0)
+	codeViewer := viewport.New(0, 0)
 
 	return Model{
-		currentFile:  file,
-		text:         text,
-		cursor:       0,
-		lineCount:    len(strings.Split(text, "\n")),
+		currentFile: file,
+		text:        text,
+		textLines:   len(strings.Split(text, "\n")),
+
 		bridge:       b,
-		breakpoints:  make(map[string][]int),
 		listenBridge: c,
-		messages:     make([]string, 0),
-		viewport:     vp,
+
+		breakpoints: make(map[string][]int),
+		messages:    make([]string, 0),
+
+		cursor:       0,
+		codeViewer:   codeViewer,
+		stdoutOutput: stdoutOutput,
 	}
 }
 

@@ -12,7 +12,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-var panelStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder())
+var panelStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(0, 1)
 
 func (m Model) View() string {
 	var buf bytes.Buffer
@@ -27,7 +27,6 @@ func (m Model) View() string {
 
 	lines := strings.Split(buf.String(), "\n")
 	breakpoints := m.breakpoints[m.currentFile]
-
 	for i, line := range lines {
 		breakpoint := " "
 		cursor := " "
@@ -42,15 +41,17 @@ func (m Model) View() string {
 		fmt.Fprintf(&out, "%-4d%s%s %s\n", i+1, breakpoint, cursor, line)
 	}
 
-	frameW, frameH := panelStyle.GetFrameSize()
-	topHeight := m.height * 70 / 100
+	m.codeViewer.SetContent(out.String())
 
-	code := panelStyle.Width(m.width - frameW).Height(topHeight - frameH).Render(out.String())
-	m.viewport.Height = m.height - (topHeight + frameH)
-	m.viewport.Width = m.width - frameW
-	m.viewport.SetContent(strings.Join(m.messages, ""))
-	m.viewport.GotoBottom()
-	output := panelStyle.Width(m.viewport.Width).Height(m.viewport.Height).Render(m.viewport.View())
+	hFrame, wFrame := panelStyle.GetFrameSize()
+	topPanel := panelStyle.
+		Height(m.codeViewer.Height - hFrame).
+		Width(m.codeViewer.Width - wFrame).
+		Render(m.codeViewer.View())
 
-	return lipgloss.JoinVertical(lipgloss.Top, code, output)
+	bottomPanel := panelStyle.Height(m.stdoutOutput.Height - hFrame).
+		Width(m.stdoutOutput.Width - wFrame).
+		Render(m.stdoutOutput.View())
+
+	return lipgloss.JoinVertical(lipgloss.Top, topPanel, bottomPanel)
 }
