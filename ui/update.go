@@ -72,7 +72,10 @@ func (m Model) HandleKeyMsg(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "b":
 		lineNumber := m.codeViewer.Cursor + 1
 
-		m.bridge.Breakpoint(m.currentFile, lineNumber)
+		set, err := m.bridge.Breakpoint(m.currentFile, lineNumber)
+		if err != nil {
+			slog.Error("could not set or unset breakpoint", "error", err)
+		}
 		if file, ok := m.breakpoints[m.currentFile]; ok {
 			m.breakpoints[m.currentFile] = append(file, lineNumber)
 		} else {
@@ -83,7 +86,7 @@ func (m Model) HandleKeyMsg(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, func() tea.Msg {
 			// check if this is in currently viewed file
 			return codeviewer.BreakpointMsg{
-				Added: true,
+				Added: set,
 				Line:  lineNumber,
 			}
 		}

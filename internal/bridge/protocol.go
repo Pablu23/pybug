@@ -11,6 +11,7 @@ type CommandType string
 const (
 	ContinueCommand CommandType = "continue"
 	BreakCommand    CommandType = "break"
+	UnbreakCommand  CommandType = "unbreak"
 	LocalsCommand   CommandType = "locals"
 	StepCommand     CommandType = "step"
 )

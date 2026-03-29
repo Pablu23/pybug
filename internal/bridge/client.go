@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"os/exec"
+	"slices"
 	"sync"
 )
 
@@ -159,13 +160,19 @@ func (b *Bridge) Step() error {
 	return nil
 }
 
-func (b *Bridge) Breakpoint(file string, line int) error {
-	// Check if breakpoint already exists here
+func (b *Bridge) Breakpoint(file string, line int) (set bool, err error) {
 	if !b.running {
-		return ErrNotRunning
+		return false, ErrNotRunning
 	}
 
-	requestId, cmd := makeCommand(BreakCommand, map[string]any{
+	var command CommandType
+	if _, ok := b.breakpoints[file]; ok && slices.Contains(b.breakpoints[file], line) {
+		command = UnbreakCommand
+	} else {
+		command = BreakCommand
+	}
+
+	requestId, cmd := makeCommand(command, map[string]any{
 		"file": file,
 		"line": line,
 	})
@@ -175,18 +182,26 @@ func (b *Bridge) Breakpoint(file string, line int) error {
 	obj := <-c
 
 	var m map[string]any
-	err := json.Unmarshal([]byte(obj), &m)
+	err = json.Unmarshal([]byte(obj), &m)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if m["status"] != "ok" {
-		return fmt.Errorf("error occured on break, err: %s", m["error"])
+		return false, fmt.Errorf("error occured on break, err: %s", m["error"])
 	}
 
-	b.breakpoints[file] = append(b.breakpoints[file], line)
+	if command == BreakCommand {
+		b.breakpoints[file] = append(b.breakpoints[file], line)
+		return true, nil
+	} else {
+		breakpointsLen := len(b.breakpoints[file])
+		index := slices.Index(b.breakpoints[file], line)
+		b.breakpoints[file][index] = b.breakpoints[file][breakpointsLen-1]
 
-	return nil
+		b.breakpoints[file] = b.breakpoints[file][0 : breakpointsLen-1]
+		return false, nil
+	}
 }
 
 func (b *Bridge) Continue() error {

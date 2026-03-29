@@ -92,6 +92,25 @@ class PyBugBridgeDebugger(bdb.Bdb):
                                 "status": "ok",
                             }
                         )
+                case "unbreak":
+                    err = self.clear_break(cmd["file"], cmd["line"])
+                    if err:
+                        self.send(
+                            {
+                                "request_id": cmd["request_id"],
+                                "event": "unbreak",
+                                "status": "error",
+                                "error": err,
+                            }
+                        )
+                    else:
+                        self.send(
+                            {
+                                "request_id": cmd["request_id"],
+                                "event": "unbreak",
+                                "status": "ok",
+                            }
+                        )
 
 
 def main():
