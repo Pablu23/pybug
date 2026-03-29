@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"strings"
 
-	"git.pablu.de/pablu/pybug/internal/bridge"
 	"git.pablu.de/pablu/pybug/ui/codeviewer"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -23,8 +22,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.stdoutOutput.SetContent(strings.Join(m.messages, ""))
 		m.stdoutOutput.GotoBottom()
 		return m, ListenBridge(m.listenBridge)
-	case ExecutionStoppedMsg:
-		m.currExecutionPoint = bridge.ExecutionPoint(msg)
+	case codeviewer.ExecutionStoppedMsg:
 		return m, tea.Batch(ListenBridgeExecutionsStopped(m.listenBridgeExecutionsStopped), m.GetLocals())
 	case LocalsMsg:
 		m.currLocals = map[string]any(msg)
@@ -71,17 +69,24 @@ func (m Model) HandleKeyMsg(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch key.String() {
 	case "q", "ctrl+c":
 		return m, tea.Quit
-	// case "b":
-	// 	lineNumber := m.cursor + 1
-	//
-	// 	m.bridge.Breakpoint(m.currentFile, lineNumber)
-	// 	if file, ok := m.breakpoints[m.currentFile]; ok {
-	// 		m.breakpoints[m.currentFile] = append(file, lineNumber)
-	// 	} else {
-	// 		m.breakpoints[m.currentFile] = []int{
-	// 			lineNumber,
-	// 		}
-	// 	}
+	case "b":
+		lineNumber := m.codeViewer.Cursor + 1
+
+		m.bridge.Breakpoint(m.currentFile, lineNumber)
+		if file, ok := m.breakpoints[m.currentFile]; ok {
+			m.breakpoints[m.currentFile] = append(file, lineNumber)
+		} else {
+			m.breakpoints[m.currentFile] = []int{
+				lineNumber,
+			}
+		}
+		return m, func() tea.Msg {
+			// check if this is in currently viewed file
+			return codeviewer.BreakpointMsg{
+				Added: true,
+				Line:  lineNumber,
+			}
+		}
 	case "s":
 		m.bridge.Step()
 	case "c":

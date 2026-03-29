@@ -15,16 +15,22 @@ type CodeViewer struct {
 	lines []string
 
 	Width, Height int
-	cursor        int
+	Cursor        int
 	offset        int
+
+	breakpoints map[int]struct{}
+
+	currStoppedLine int
 }
 
 func NewCodeViewer(text string) CodeViewer {
 	cv := CodeViewer{
-		Width:  0,
-		Height: 0,
-		cursor: 0,
-		offset: 0,
+		Width:           0,
+		Height:          0,
+		Cursor:          0,
+		offset:          0,
+		currStoppedLine: -1,
+		breakpoints:     map[int]struct{}{},
 	}
 
 	return cv.colorize(text)
@@ -38,8 +44,16 @@ func (c CodeViewer) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		return c.handleKeyMsg(msg)
-		// case tea.WindowSizeMsg:
-		// return c.UpdateWindowSize(msg)
+	case ChangeTextMsg:
+		c = c.colorize(msg.Text)
+	case BreakpointMsg:
+		if msg.Added {
+			c.breakpoints[msg.Line] = struct{}{}
+		} else {
+			delete(c.breakpoints, msg.Line)
+		}
+	case ExecutionStoppedMsg:
+		c.currStoppedLine = msg.Line
 	}
 
 	return c, nil
@@ -48,40 +62,17 @@ func (c CodeViewer) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (c CodeViewer) handleKeyMsg(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch key.String() {
 	case "k":
-		c.cursor = max(0, c.cursor-1)
+		c.Cursor = max(0, c.Cursor-1)
 		topThreshold := c.offset + int(float64(c.Height)*0.1)
-		if c.cursor < topThreshold && c.offset > 0 {
+		if c.Cursor < topThreshold && c.offset > 0 {
 			c.offset -= 1
 		}
 	case "j":
-		c.cursor = min(len(c.lines)-1, c.cursor+1)
+		c.Cursor = min(len(c.lines)-1, c.Cursor+1)
 		bottomThreshold := c.offset + int(float64(c.Height)*0.9)
-		if c.cursor > bottomThreshold && c.offset < len(c.lines) {
+		if c.Cursor > bottomThreshold && c.offset < len(c.lines) {
 			c.offset += 1
 		}
-
-		// case "b":
-		// 	lineNumber := c.cursor + 1
-		//
-		// 	c.bridge.Breakpoint(m.currentFile, lineNumber)
-		// 	if file, ok := m.breakpoints[m.currentFile]; ok {
-		// 		m.breakpoints[m.currentFile] = append(file, lineNumber)
-		// 	} else {
-		// 		m.breakpoints[m.currentFile] = []int{
-		// 			lineNumber,
-		// 		}
-		// 	}
-		// case "s":
-		// 	m.bridge.Step()
-		// case "c":
-		// 	m.bridge.Continue()
-		// case "r":
-		// 	m.messages = make([]string, 0)
-		// 	m.stdoutOutput.SetContent("")
-		// 	err := m.bridge.Start()
-		// 	if err != nil {
-		// 		slog.Error("could not start brige", "error", err)
-		// 	}
 	}
 
 	return c, nil
@@ -105,13 +96,22 @@ func (c CodeViewer) View() string {
 
 	lines := c.lines[max(0, c.offset):min(c.offset+c.Height, len(c.lines))]
 	for i, line := range lines {
+		lineNumber := i + c.offset + 1
 		breakpoint := " "
 		cursor := " "
 		executor := " "
-		if c.offset+i == c.cursor {
+
+		if lineNumber == c.Cursor+1 {
 			cursor = ">"
 		}
-		fmt.Fprintf(&out, "%-4d%s%s%s %s\n", c.offset+i+1, breakpoint, executor, cursor, line)
+		if _, ok := c.breakpoints[lineNumber]; ok {
+			breakpoint = "O"
+		}
+		if lineNumber == c.currStoppedLine {
+			executor = "@"
+		}
+
+		fmt.Fprintf(&out, "%-4d%s%s%s %s\n", lineNumber, breakpoint, executor, cursor, line)
 	}
 	if len(lines)-c.offset < c.Height {
 		for range c.Height - len(lines) {
