@@ -113,6 +113,7 @@ func (c CodeViewer) View() string {
 
 		fmt.Fprintf(&out, "%-4d%s%s%s %s\n", lineNumber, breakpoint, executor, cursor, line)
 	}
+	// Count long lines, and add here if they are out of view, this is a bit tricky I guess
 	if len(lines)-c.offset < c.Height {
 		for range c.Height - len(lines) {
 			fmt.Fprintf(&out, "\n")

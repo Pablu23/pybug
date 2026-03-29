@@ -26,7 +26,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(ListenBridgeExecutionsStopped(m.listenBridgeExecutionsStopped), m.GetLocals())
 	case LocalsMsg:
 		m.currLocals = map[string]any(msg)
-		m.localsViewer.SetContent(strings.Join(flattenDict(m.currLocals, 0), "\n"))
+		m.localsViewer.SetNewVariables(m.currLocals)
 	}
 
 	return m, cmd

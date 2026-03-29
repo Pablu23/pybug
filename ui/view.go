@@ -14,7 +14,7 @@ func flattenDict(m map[string]interface{}, indent int) []string {
 	prefix := strings.Repeat("  ", indent)
 	for k, v := range m {
 		switch val := v.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			lines = append(lines, fmt.Sprintf("%s%s:", prefix, k))
 			lines = append(lines, flattenDict(val, indent+1)...)
 		default:
